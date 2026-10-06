@@ -1,0 +1,73 @@
+--- a/GUI/GuiManager.as
++++ b/GUI/GuiManager.as
+@@ -186,6 +186,9 @@
+          this.etcNames = new Array(Language.getLiteral(Language.TOOLTIP_MULTI),Language.getLiteral(Language.TOOLTIP_ELIMINAR),Language.getLiteral(Language.TOOLTIP_INVITACIONES_AMIGOS),Language.getLiteral(Language.TOOLTIP_REGALOS),Language.getLiteral(Language.TOOLTIP_RECOLECTAR),Language.getLiteral(Language.TOOLTIP_TIENDA));
+          super();
+          Base.Main.getStage().addEventListener(FullScreenEvent.FULL_SCREEN,this.onFullScreenChange);
++         Base.Main.getStage().addEventListener(MouseEvent.MOUSE_OVER,this.rufflefixHoverCheck,true);
++         Base.Main.getStage().addEventListener(MouseEvent.MOUSE_MOVE,this.rufflefixHoverCheck,true);
++         Base.Main.addEventListener(Event.ADDED,this.rufflefixSelectorAdded);
+          this.startX = param1;
+          this.startY = param2;
+          this.panelCollection.visible = false;
+@@ -900,6 +903,9 @@
+       
+       public function destroy() : void
+       {
++         Base.Main.getStage().removeEventListener(MouseEvent.MOUSE_OVER,this.rufflefixHoverCheck,true);
++         Base.Main.getStage().removeEventListener(MouseEvent.MOUSE_MOVE,this.rufflefixHoverCheck,true);
++         Base.Main.removeEventListener(Event.ADDED,this.rufflefixSelectorAdded);
+          var _loc1_:* = undefined;
+          mouseChildren = false;
+          mouseEnabled = false;
+@@ -1009,13 +1015,50 @@
+          Base.Main.setMouseToInquire();
+       }
+       
++      private var rufflefixGuiHovered:Boolean = false;
++      
+       public function mouseOver(param1:MouseEvent) : void
+       {
++         this.rufflefixGuiHovered = true;
+          Base.Main.disableMap();
+       }
+       
++      // RUFFLE FIX: zero-size drag-selection box under the cursor (see the 0.9.26b patch).
++      private function rufflefixSelectorAdded(param1:Event) : void
++      {
++         if(param1.target == null || param1.target != Base.Main.selectorSquare)
++         {
++            return;
++         }
++         var _loc2_:Sprite = param1.target as Sprite;
++         if(_loc2_ == null || Base.Main.buildingLayer == null)
++         {
++            return;
++         }
++         if(Math.abs(Base.Main.squareInitX - Base.Main.buildingLayer.mouseX) <= 3 && Math.abs(Base.Main.squareInitY - Base.Main.buildingLayer.mouseY) <= 3)
++         {
++            _loc2_.mouseEnabled = false;
++         }
++      }
++      
++      // RUFFLE FIX: missing MOUSE_OUT on the GUI after a hovered GUI element is removed (see the 0.9.26b patch).
++      private function rufflefixHoverCheck(param1:MouseEvent) : void
++      {
++         if(!this.rufflefixGuiHovered)
++         {
++            return;
++         }
++         var _loc2_:DisplayObject = param1.target as DisplayObject;
++         if(_loc2_ == null || _loc2_ == this || this.contains(_loc2_))
++         {
++            return;
++         }
++         this.mouseOut(param1);
++      }
++      
+       public function mouseOut(param1:MouseEvent) : void
+       {
++         this.rufflefixGuiHovered = false;
+          if(this.zoomState == 0 && Base.PopUp.confirmWindow == null && this.expolorationWorld == null || Base.Main.tutorialMode)
+          {
+             Base.Main.enableMap();

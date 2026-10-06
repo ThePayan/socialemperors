@@ -1,0 +1,87 @@
+name: Build desktop app
+
+# Builds the Social Empires desktop app (Ruffle edition, no Flash Player needed)
+# for Windows, macOS and Linux. Pushing a tag like "v0.04a-app1" publishes a release.
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    name: ${{ matrix.name }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: windows-latest
+            name: windows
+          - os: macos-latest
+            name: macos
+          - os: ubuntu-22.04
+            name: linux
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install Linux libraries for Qt WebEngine
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libxcb-cursor0 libxkbcommon-x11-0 libegl1 libnss3
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r app/requirements-app.txt
+
+      - name: Build app (PyInstaller)
+        run: pyinstaller app/social-empires.spec --noconfirm
+
+      - name: Package (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          7z a -tzip -mx=1 SocialEmpires-windows-portable.zip .\dist\SocialEmpires
+          $iscc = "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe"
+          if (-not (Test-Path $iscc)) { choco install innosetup -y --no-progress }
+          & $iscc /DMyAppVersion=${{ github.ref_name }} app\installer.iss
+          Move-Item dist\SocialEmpires-Setup.exe SocialEmpires-windows-setup.exe
+
+      - name: Package (macOS)
+        if: runner.os == 'macOS'
+        run: ditto -c -k --keepParent dist/SocialEmpires.app SocialEmpires-macos.zip
+
+      - name: Package (Linux)
+        if: runner.os == 'Linux'
+        run: tar -czf SocialEmpires-linux.tar.gz -C dist SocialEmpires
+
+      - name: Upload build
+        uses: actions/upload-artifact@v4
+        with:
+          name: SocialEmpires-${{ matrix.name }}
+          path: |
+            SocialEmpires-windows-setup.exe
+            SocialEmpires-windows-portable.zip
+            SocialEmpires-macos.zip
+            SocialEmpires-linux.tar.gz
+          if-no-files-found: ignore
+          retention-days: 7
+
+      - name: Publish release
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            SocialEmpires-windows-setup.exe
+            SocialEmpires-windows-portable.zip
+            SocialEmpires-macos.zip
+            SocialEmpires-linux.tar.gz
+          fail_on_unmatched_files: false

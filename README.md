@@ -8,6 +8,14 @@ This project is dedicated to preserving this Flash game so that it's not lost to
 
 ---
 
+## Play without Flash: desktop app
+
+The game now runs on [Ruffle](https://ruffle.rs) (a Flash Player emulator), so **no Flash Player or Flash browser is needed**.
+Download the app for Windows, macOS or Linux from the [Releases](../../releases) page, install it and play.
+Details, save locations and build instructions: [app/README.md](app/README.md).
+
+Running from source instead: `python server.py` and open `http://127.0.0.1:5050/` in any modern browser.
+
 ## Latest Release
 
 | Version | Release date | Source | Download |

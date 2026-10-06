@@ -1,13 +1,15 @@
 print (" [+] Loading basics...")
 import os
 import json
-import urllib
-if os.name == 'nt':
-    os.system("color")
-    os.system("title Social Empires Server")
-else:
-    import sys
-    sys.stdout.write("\x1b]2;Social Empires Server\x07")
+import urllib.request
+import urllib.error
+import sys
+if sys.stdout is not None and sys.stdout.isatty():
+    if os.name == 'nt':
+        os.system("color")
+        os.system("title Social Empires Server")
+    else:
+        sys.stdout.write("\x1b]2;Social Empires Server\x07")
 
 print (" [+] Loading game config...")
 from get_game_config import get_game_config, patch_game_config
@@ -27,10 +29,19 @@ from constants import Constant
 from quests import get_quest_map
 from bundle import ASSETS_DIR, STUB_DIR, TEMPLATES_DIR, BASE_DIR
 
-host = '127.0.0.1'
-port = 5050
+host = os.environ.get("SE_HOST", "127.0.0.1")
+port = int(os.environ.get("SE_PORT", "5050"))
+
+def ruffle_game_version(gameversion: str) -> str:
+    # Use the Ruffle-compatibility build of the game SWF when there is one
+    # (see app/swf_patch). Original files are left untouched for Flash Player.
+    patched = gameversion.replace(".swf", "_ruffle.swf")
+    if os.path.exists(os.path.join(ASSETS_DIR, "flash", patched)):
+        return patched
+    return gameversion
 
 app = Flask(__name__, template_folder=TEMPLATES_DIR)
+app.secret_key = 'SECRET_KEY'
 
 print (" [+] Configuring server routes...")
 
@@ -59,42 +70,39 @@ def login():
         saves_info = all_saves_info()
         return render_template("login.html", saves_info=saves_info, version=version_name)
 
+def _current_session():
+    if 'USERID' not in session or 'GAMEVERSION' not in session:
+        return None
+    if session['USERID'] not in all_saves_userid():
+        return None
+    return session['USERID'], session['GAMEVERSION']
+
 @app.route("/play.html")
 def play():
-    print(session)
-
-    if 'USERID' not in session:
+    # Plays the game with Ruffle (no Flash Player required)
+    current = _current_session()
+    if current is None:
         return redirect("/")
-    if 'GAMEVERSION' not in session:
-        return redirect("/")
-
-    if session['USERID'] not in all_saves_userid():
-        return redirect("/")
-    
-    USERID = session['USERID']
-    GAMEVERSION = session['GAMEVERSION']
+    USERID, GAMEVERSION = current
+    GAMEVERSION = ruffle_game_version(GAMEVERSION)
     print("[PLAY] USERID:", USERID)
     print("[PLAY] GAMEVERSION:", GAMEVERSION)
-    return render_template("play.html", save_info=save_info(USERID), serverTime=timestamp_now(), friendsInfo=fb_friends_str(USERID), version=version_name, GAMEVERSION=GAMEVERSION, SERVERIP=host)
+    return render_template("play.html", save_info=save_info(USERID), serverTime=timestamp_now(), friendsInfo=fb_friends_str(USERID), version=version_name, GAMEVERSION=GAMEVERSION, SERVERIP=host, SERVERPORT=port)
+
+@app.route("/flash.html")
+def play_flash():
+    # Legacy page for browsers that still have a real Flash Player plugin
+    current = _current_session()
+    if current is None:
+        return redirect("/")
+    USERID, GAMEVERSION = current
+    print("[FLASH] USERID:", USERID)
+    print("[FLASH] GAMEVERSION:", GAMEVERSION)
+    return render_template("play_flash.html", save_info=save_info(USERID), serverTime=timestamp_now(), friendsInfo=fb_friends_str(USERID), version=version_name, GAMEVERSION=GAMEVERSION, SERVERIP=host, SERVERPORT=port)
 
 @app.route("/ruffle.html")
 def ruffle():
-    print(session)
-
-    if 'USERID' not in session:
-        return redirect("/")
-    if 'GAMEVERSION' not in session:
-        return redirect("/")
-
-    if session['USERID'] not in all_saves_userid():
-        return redirect("/")
-    
-    USERID = session['USERID']
-    GAMEVERSION = session['GAMEVERSION']
-    print("[RUFFLE] USERID:", USERID)
-    print("[RUFFLE] GAMEVERSION:", GAMEVERSION)
-    return render_template("ruffle.html", save_info=save_info(USERID), serverTime=timestamp_now(), version=version_name, GAMEVERSION=GAMEVERSION, SERVERIP=host)
-
+    return redirect("/play.html")
 
 @app.route("/new.html")
 def new():
@@ -109,6 +117,10 @@ def crossdomain():
 @app.route("/img/<path:path>")
 def images(path):
     return send_from_directory(TEMPLATES_DIR + "/img", path)
+
+@app.route("/ruffle/<path:path>")
+def ruffle_files(path):
+    return send_from_directory(TEMPLATES_DIR + "/ruffle", path)
 
 @app.route("/css/<path:path>")
 def css(path):
@@ -132,6 +144,8 @@ def similar_05122012_dynamic():
 @app.route("/default01.static.socialpointgames.com/static/socialempires/<path:path>")
 def static_assets_loader(path):
     # return send_from_directory(ASSETS_DIR, path)
+    if ".." in path.replace("\\", "/").split("/"):
+        return ("", 404)
     if not os.path.exists(ASSETS_DIR + "/"+ path):
         # File does not exists in provided assets
         if not os.path.exists(f"{BASE_DIR}/download_assets/assets/{path}"):
@@ -145,16 +159,19 @@ def static_assets_loader(path):
             # Download File
             URL = f"https://static.socialpointgames.com/static/socialempires/assets/{path}"
             try:
-                response = urllib.request.urlretrieve(URL, f"{BASE_DIR}/download_assets/assets/{path}")
-            except urllib.error.HTTPError:
+                with urllib.request.urlopen(URL, timeout=5) as response:
+                    data = response.read()
+                with open(f"{BASE_DIR}/download_assets/assets/{path}", "wb") as f:
+                    f.write(data)
+            except Exception:
                 return ("", 404)
 
             print(f"====== DOWNLOADED ASSET: {URL}")
-            return send_from_directory("{BASE_DIR}/download_assets/assets", path)
+            return send_from_directory(f"{BASE_DIR}/download_assets/assets", path)
         else:
             # Use downloaded CDN asset
             print(f"====== USING EXTERNAL: download_assets/assets/{path}")
-            return send_from_directory("{BASE_DIR}/download_assets/assets", path)
+            return send_from_directory(f"{BASE_DIR}/download_assets/assets", path)
     else:
         # Use provided asset
         return send_from_directory(ASSETS_DIR, path)
@@ -302,6 +319,8 @@ def get_continent_ranking_response():
 
 print (" [+] Running server...")
 
+def run():
+    app.run(host=host, port=port, debug=False, threaded=True, use_reloader=False)
+
 if __name__ == '__main__':
-    app.secret_key = 'SECRET_KEY'
-    app.run(host=host, port=port, debug=False)
+    run()

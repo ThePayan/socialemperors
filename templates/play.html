@@ -1,113 +1,124 @@
 <!DOCTYPE html>
 <html lang="en">
     <head>
-        <!-- Meta -->
         <meta charset="utf-8"/>
-        <!-- Title and Icon -->
+        <meta name="viewport" content="width=device-width, initial-scale=1"/>
         <title id="pageTitle">Social Empires</title>
         <link rel="shortcut icon" href="img/icon.gif"/>
         <link rel="icon" type="image/png" href="img/icon.gif"/>
+        <!-- Ruffle (Flash Player emulator, https://ruffle.rs) served locally: no Flash Player needed. -->
+        <script src="/ruffle/ruffle.js"></script>
+        <style>
+            html, body {
+                margin: 0;
+                height: 100%;
+                background: #2f4a14;
+                font-family: 'lucida grande', tahoma, verdana, arial, sans-serif;
+                overflow: hidden;
+            }
+            #topbar {
+                height: 34px;
+                box-sizing: border-box;
+                display: flex;
+                align-items: center;
+                gap: 10px;
+                padding: 0 10px;
+                background-color: rgb(137, 187, 15);
+                border-bottom: solid #6e5335 3px;
+                font-size: 13px;
+                color: #1d2a06;
+            }
+            #topbar img.logo { height: 26px; }
+            #topbar .version { opacity: .7; font-size: 11px; }
+            #topbar .spacer { flex: 1; }
+            #topbar a.btn {
+                color: black;
+                text-decoration: none;
+                border: solid 1.5px #9e7747;
+                background-color: rgb(255, 245, 131);
+                border-radius: 5px;
+                padding: 2px 8px;
+                font-size: 12px;
+            }
+            #topbar a.btn:hover { background-color: rgb(250, 237, 90); }
+            #stage {
+                height: calc(100% - 34px);
+                display: flex;
+                align-items: center;
+                justify-content: center;
+            }
+            /* The game uses StageScaleMode.EXACT_FIT, so keep its 760x600 aspect ratio to avoid stretching. */
+            #ruffle {
+                aspect-ratio: 760 / 600;
+                width: min(100vw, calc((100vh - 34px) * 760 / 600));
+                background-color: #669C2C;
+            }
+            #ruffle ruffle-player, #ruffle ruffle-object { width: 100%; height: 100%; display: block; }
+        </style>
     </head>
-    <body style="font-family: 'lucida grande',tahoma,verdana,arial,sans-serif">
-    <center>
-        <!-- SESSION HEADER -->
-        <div id="header" style="width: 760px; margin-top: 50px;">
-            <div id="session" style="float: right;">
-                <p style="display:inline">Logged in as <b>{{save_info.name}}</b> lvl {{save_info.level}} (<a href="/">logout</a>)</p>
-            </div>
+    <body>
+        <div id="topbar">
+            <img class="logo" src="img/logo.png" alt="Social Empires">
+            <span class="version">{{ version }}</span>
+            <span class="spacer"></span>
+            <span><b>{{save_info.name}}</b> &middot; lvl {{save_info.level}}</span>
+            <a class="btn" href="/">Change empire</a>
         </div>
-        <br>
-        <!-- GAME BAR -->
-        <div id="gameBar" style="margin-top: 15px;">
-            <!-- GAME BAR TOP -->
-            <div id="gamebar_top" style="width: 760px; height: 90px;">
-                <div style="float: left; margin-left:155px; padding: 4px; font-size: 10pt">
-                    <!-- VERSION -->
-                    <br><br><br>
-                    <p style="display: inline">{{ version }}</p>
-                </div>
-            </div>
-            <!-- GAME BAR BUTTONS -->
-            <div id="gamebar_buttons" style="width: 760px;">
-                &nbsp;
-                <a class="gameBarButton" href="#"><div><img src="img/gift.png">Free Gifts</div></a>
-                <a class="gameBarButton gameBarButtonSelected" href="#"><div><img>Play</div></a>
-                <a class="gameBarButton" href="#"><div><img src="img/cash.png">Get Cash</div></a>
-                <a class="gameBarButton" href="https://discord.gg/zW5gSbQJBw" target="_blank"><div><img src="img/discord.png">Discord</div></a>
-                <a class="gameBarButton" href="https://github.com/AcidCaos/socialemperors#readme" target="_blank"><div><img src="img/github.png">GitHub</div></a>
-            </div>
-            <style>
-                #gameBar {
-                    text-align: left;
-                    width: 760px;
-                    margin-bottom: 0px;
-                    padding: 0px;
-                    background-color:rgb(137, 187, 15);
-                    background-image: url('img/Gamebar_byTrevo.png');
-                    background-repeat: no-repeat;
-                    background-size: contain;
-                    border-bottom: solid #6e5335 3px;
-                }
-                .gameBarButton {
-                    display: inline-block;
-                    height: 19px;
-                    color: black;
-                    border: solid 1.5px;
-                    border-color: #9e7747;
-                    background-color:rgb(255, 245, 131);
-                    border-top-left-radius: 5px;
-                    border-top-right-radius: 5px;
-                    cursor: pointer;
-                    text-decoration: none;
-                    font-size: 11pt;
-                    padding: 2px 3px 1px 3px; 
-                }
-
-                .gameBarButtonSelected {
-                    background-color:rgb(233, 221, 81);
-                }
-
-                .gameBarButton img {
-                    height: 17px;
-                    padding-right: 3px;
-                    vertical-align: middle;
-                }
-
-                .gameBarButton:hover {
-                    background-color:rgb(250, 237, 90);
-                    text-decoration: none;
-                }
-
-                .gameBarButtonSelected:hover {
-                    background-color:rgb(223, 212, 82);
-                }
-
-            </style>
-        </div>
-        <!-- EMBED GAME -->
-        <object>
-            <embed
-                src="http://{{SERVERIP}}:5050/default01.static.socialpointgames.com/static/socialempires/flash/SELoader.swf?swftoload=http://{{SERVERIP}}:5050/default01.static.socialpointgames.com/static/socialempires/flash/{{GAMEVERSION}}" 
-                allowFullScreen="true" bgcolor="#669C2C" quality=high WIDTH="760" HEIGHT="600" NAME="se" ALIGN=""
-                TYPE="application/x-shockwave-flash" PLUGINSPAGE="http://www.macromedia.com/go/getflashplayer"
-                flashvars='spdebug=notnull&brk=0
-                &staticUrl=http://{{SERVERIP}}:5050/default01.static.socialpointgames.com/static/socialempires/&brk=0
-                &dynamicUrl=http://{{SERVERIP}}:5050/dynamic.flash1.dev.socialpoint.es/appsfb/socialempiresdev/srvempires/&brk=0
-                &skiphash12341=notnull&brk=0
-                &fb_sig_user={{save_info.userid}}&brk=0
-                &user_key=123456789&brk=0
-                &language=en&brk=0
-                &accessToken=AAABbZAm0wdMUBALsOrR0Ho68CLjaOT8SV3vftKg9mbo1zZColaW5FljRVaLxPGxXXnm1M98mTZCAttcQ4GHwvSyXfsyxYmvKMH8Hmn5iliSPnjvIsZA6&brk=0
-                &sex=m&brk=0
-                &lastLoggedIn=1349266517&brk=0
-                &dailyBonus=0&brk=0
-                &friendsInfo={{friendsInfo | tojson}}&brk=0
-                &serverTime={{serverTime}}&brk=0
-                &forceSyncError=1&brk=0
-                &forceAttackReload=0&brk=0
-                &forceQuestReload=0&brk=0'>
-            </embed>
-        </object>
-    </center>
+        <div id="stage"><div id="ruffle"></div></div>
+        <script>
+            window.RufflePlayer = window.RufflePlayer || {};
+            window.RufflePlayer.config = {
+                autoplay: "on",
+                unmuteOverlay: "hidden",
+                splashScreen: false,
+                contextMenu: "rightClickOnly",
+                letterbox: "on",
+                backgroundColor: "#669C2C",
+                allowScriptAccess: true,
+                logLevel: "warn",
+                showSwfDownload: false,
+                openUrlMode: "allow",
+                allowNetworking: "all",
+                warnOnUnsupportedContent: false,
+                quality: "high",
+                // The game parses its whole config on startup; give slow PCs time instead of
+                // aborting the script after Ruffle's default 15 s.
+                maxExecutionDuration: 120,
+            };
+            var SERVER = "http://{{SERVERIP}}:{{SERVERPORT}}";
+            var STATIC = SERVER + "/default01.static.socialpointgames.com/static/socialempires/";
+            var DYNAMIC = SERVER + "/dynamic.flash1.dev.socialpoint.es/appsfb/socialempiresdev/srvempires/";
+            var player = window.RufflePlayer.newest().createPlayer();
+            document.getElementById("ruffle").appendChild(player);
+            // Ruffle shows a "enable hardware acceleration in Chrome" notice on PCs without GPU
+            // rendering; it is not actionable inside the app and swallows the first click.
+            try {
+                var hwModal = player.shadowRoot && player.shadowRoot.getElementById("hardware-acceleration-modal");
+                if (hwModal) { hwModal.remove(); }
+            } catch (e) {}
+            player.ruffle().load({
+                url: STATIC + "flash/SELoader.swf?swftoload=" + STATIC + "flash/{{GAMEVERSION}}",
+                parameters: {
+                    spdebug: "notnull",
+                    staticUrl: STATIC,
+                    dynamicUrl: DYNAMIC,
+                    skiphash12341: "notnull",
+                    fb_sig_user: "{{save_info.userid}}",
+                    user_key: "123456789",
+                    language: "en",
+                    accessToken: "AAABbZAm0wdMUBALsOrR0Ho68CLjaOT8SV3vftKg9mbo1zZColaW5FljRVaLxPGxXXnm1M98mTZCAttcQ4GHwvSyXfsyxYmvKMH8Hmn5iliSPnjvIsZA6",
+                    sex: "m",
+                    lastLoggedIn: "1349266517",
+                    dailyBonus: "0",
+                    friendsInfo: JSON.stringify({{ friendsInfo | tojson }}),
+                    serverTime: "{{serverTime}}",
+                    forceSyncError: "1",
+                    forceAttackReload: "0",
+                    forceQuestReload: "0",
+                },
+            });
+            // Give keyboard focus to the game right away.
+            setTimeout(function () { try { player.focus(); } catch (e) {} }, 500);
+        </script>
     </body>
 </html>
