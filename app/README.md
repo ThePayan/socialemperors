@@ -57,7 +57,7 @@ iscc app/installer.iss                            # Windows installer (Inno Setu
 ```
 
 The GitHub Actions workflow `.github/workflows/build-app.yml` builds all three systems and,
-when a tag such as `v0.04a-app1` is pushed, publishes them as a release.
+when a release is published (e.g. tag `v0.04a-app1`), attaches the downloads to it.
 
 ## Credits and licenses
 

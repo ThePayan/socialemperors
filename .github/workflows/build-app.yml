@@ -1,10 +1,12 @@
 name: Build desktop app
 
 # Builds the Social Empires desktop app (Ruffle edition, no Flash Player needed)
-# for Windows, macOS and Linux. Pushing a tag like "v0.04a-app1" publishes a release.
+# for Windows, macOS and Linux. Publishing a GitHub release (e.g. tag "v0.04a-app1")
+# builds the app and attaches the downloads to that release. "Run workflow" in the
+# Actions tab only builds (downloads under the run's artifacts).
 on:
-  push:
-    tags: ["v*"]
+  release:
+    types: [published]
   workflow_dispatch:
 
 permissions:
@@ -75,8 +77,8 @@ jobs:
           if-no-files-found: ignore
           retention-days: 7
 
-      - name: Publish release
-        if: startsWith(github.ref, 'refs/tags/')
+      - name: Attach to release
+        if: github.event_name == 'release'
         uses: softprops/action-gh-release@v2
         with:
           files: |
